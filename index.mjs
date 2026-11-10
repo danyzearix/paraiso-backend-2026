@@ -1,0 +1,98 @@
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import connectDB from './config/mongoConfig.mjs';
+import obituariosRoutes from "./routes/obituariosRoutes.mjs"
+import uploadRoutes from "./routes/uploadRoutes.mjs"
+import usuariosRoutes from "./routes/usuariosRoutes.mjs";
+import misaRoutes from "./routes/misaRoutes.mjs";
+import horarioRoutes from "./routes/horarioRoutes.mjs";
+import pagosRoutes from './routes/pagosRoutes.mjs';
+import { confirmationWebhook } from './controllers/pagosController.mjs';
+import reservasRoutes from './routes/reservasRoutes.mjs';
+
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+
+
+//Middlewares
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+console.log(PORT)
+
+//Llamar funcion que conecta a la DB 
+connectDB();
+
+// Permitir solicitudes desde cualquier origen
+
+// 1. Permitir CORS *para tu dominio*:
+app.use(cors({
+  origin: [
+    'https://admin.elparaisoparquecementerio.com',
+    'https://paraiso-node-api-0c5186e80e32.herokuapp.com',
+    'http://localhost:5173',
+    'https://elparaisoparquecementerio.com'
+  ]
+}));
+
+app.use(express.json());// O permitir solicitudes solo desde el origen específico donde se encuentra tu aplicación React
+
+// Parsear el cuerpo de las solicitudes a JSON
+app.use(bodyParser.json());
+
+// Obtén la ruta del archivo actual a partir de import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+// Usa path.dirname para obtener el directorio del archivo actual
+const __dirname = path.dirname(__filename);
+
+// Ahora puedes usar __dirname para construir rutas de manera segura
+const directory = path.join(__dirname, 'public', 'uploads');
+
+console.log(directory); // Verifica que la ruta es correcta
+//Usar carpeta public
+app.use( express.static("public"));
+
+// Parsear el cuerpo de las solicitudes a JSON
+app.use(bodyParser.json());
+
+// 👉 Añade esto para que lea form data de ePayco (x-www-form-urlencoded)
+app.use(bodyParser.urlencoded({ extended: true }));
+
+//Rutas 
+app.use("/api/obituarios", obituariosRoutes)
+app.use("/api", uploadRoutes);
+app.use("/api/usuarios", usuariosRoutes)
+app.use("/api/misas", misaRoutes);
+app.use("/api/horarios", horarioRoutes);
+app.use('/api/pagos', pagosRoutes);
+app.post('/api/pagos/webhook', confirmationWebhook);
+app.use('/api/horarios', horarioRoutes);
+app.use('/api/reservas', reservasRoutes);
+
+
+//Middleware para verificar token jeje
+function verifyToken(req, res, next) {
+  const token = req.header('auth-token');
+  if (!token) return res.status(401).send('Acceso denegado');
+
+  try {
+    const verified = jwt.verify(token, 'tu_secreto');
+    req.user = verified;
+    next();
+  } catch (error) {
+    res.status(400).send('Token inválido');
+  }
+}
+
+app.use('/FormularioObituarios', verifyToken);
+
+// Iniciar el servidor y escuchar en el puerto especificado
+app.listen(PORT, () => {
+  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+});
+
+
