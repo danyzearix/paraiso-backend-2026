@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+
 import connectDB from './config/mongoConfig.mjs';
 import obituariosRoutes from "./routes/obituariosRoutes.mjs"
 import uploadRoutes from "./routes/uploadRoutes.mjs"
